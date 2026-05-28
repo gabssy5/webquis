@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduAR Maluku - Rancang Bangun Game Edukasi AR</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #0b132b;
+            color: #f4f4f9;
+        }
+        /* Custom Hologram CSS 3D animations */
+        .hologram-container {
+            perspective: 1000px;
+        }
+        .hologram-object {
+            transform-style: preserve-3d;
+            animation: floatAndRotate 12s infinite linear;
+        }
+        @keyframes floatAndRotate {
+            0% {
+                transform: translateY(0px) rotateY(0deg) rotateX(10deg);
+            }
+            50% {
+                transform: translateY(-15px) rotateY(180deg) rotateX(20deg);
+            }
+            100% {
+                transform: translateY(0px) rotateY(360deg) rotateX(10deg);
+            }
+        }
+        .hologram-glow {
+            filter: drop-shadow(0 0 15px rgba(34, 211, 238, 0.75));
+        }
+        /* Scanner scanline effect */
+        .scanline {
+            background: linear-gradient(
+                to bottom,
+                rgba(34, 211, 238, 0) 0%,
+                rgba(34, 211, 238, 0.5) 50%,
+                rgba(34, 211, 238, 0) 100%
+            );
+            animation: scan 2.5s infinite linear;
+        }
+        @keyframes scan {
+            0% { top: 0%; }
+            100% { top: 100%; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-[#1c2541] border-b border-cyan-500/20 sticky top-0 z-50 px-4 py-3 shadow-lg">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-cyan-500/10 rounded-lg border border-cyan-400/30">
+                    <i class="fa-solid fa-vr-cardboard text-cyan-400 text-2xl animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-white tracking-wide">EduAR <span class="text-cyan-400">Maluku</span></h1>
+                    <p class="text-xs text-gray-400">Rancang Bangun Game Edukasi AR</p>
+                </div>
+            </div>
+            
+            <!-- Tab Button Navigation -->
+            <nav class="hidden md:flex space-x-2">
+                <button onclick="switchTab('simulator')" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 bg-cyan-600 text-white" id="tab-simulator">
+                    <i class="fa-solid fa-qrcode mr-2"></i>Simulasi Scanner
+                </button>
+                <button onclick="switchTab('quiz')" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 text-gray-300 hover:bg-slate-700" id="tab-quiz">
+                    <i class="fa-solid fa-gamepad mr-2"></i>Kuis Budaya
+                </button>
+                <button onclick="switchTab('rancangan')" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 text-gray-300 hover:bg-slate-700" id="tab-rancangan">
+                    <i class="fa-solid fa-compass-drafting mr-2"></i>Rancangan Sistem
+                </button>
+                <button onclick="switchTab('kamera')" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 text-gray-300 hover:bg-slate-700" id="tab-kamera">
+                    <i class="fa-solid fa-camera mr-2"></i>Kamera AR Asli
+                </button>
+            </nav>
+
+            <div class="md:hidden">
+                <button onclick="toggleMobileMenu()" class="text-white hover:text-cyan-400 p-2 focus:outline-none">
+                    <i class="fa-solid fa-bars text-xl" id="menu-icon"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Menu -->
+        <div id="mobile-menu" class="hidden md:hidden mt-3 pt-3 border-t border-slate-700 space-y-2 flex flex-col">
+            <button onclick="switchTab('simulator'); toggleMobileMenu()" class="text-left px-3 py-2 rounded-md text-sm text-cyan-400 bg-cyan-950/40 font-semibold" id="m-tab-simulator">
+                <i class="fa-solid fa-qrcode w-6"></i>Simulasi Scanner
+            </button>
+            <button onclick="switchTab('quiz'); toggleMobileMenu()" class="text-left px-3 py-2 rounded-md text-sm text-gray-300 hover:bg-slate-800" id="m-tab-quiz">
+                <i class="fa-solid fa-gamepad w-6"></i>Kuis Budaya
+            </button>
+            <button onclick="switchTab('rancangan'); toggleMobileMenu()" class="text-left px-3 py-2 rounded-md text-sm text-gray-300 hover:bg-slate-800" id="m-tab-rancangan">
+                <i class="fa-solid fa-compass-drafting w-6"></i>Rancangan Sistem
+            </button>
+            <button onclick="switchTab('kamera'); toggleMobileMenu()" class="text-left px-3 py-2 rounded-md text-sm text-gray-300 hover:bg-slate-800" id="m-tab-kamera">
+                <i class="fa-solid fa-camera w-6"></i>Kamera AR Asli
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-6xl w-full mx-auto p-4 md:py-8">
+
+        <!-- ================= SECTION 1: SIMULASI SCANNER (HOME) ================= -->
+        <section id="sec-simulator" class="tab-section grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Left Panel: Virtual Phone Simulator (AR Screen) -->
+            <div class="lg:col-span-7 flex flex-col items-center">
+                <div class="w-full max-w-[420px] bg-[#1c2541] rounded-[40px] p-4 shadow-2xl border-4 border-slate-800 relative">
+                    <!-- Phone Notch/Speaker -->
+                    <div class="absolute top-5 left-1/2 transform -translate-x-1/2 w-32 h-4 bg-slate-800 rounded-full z-20 flex items-center justify-center">
+                        <div class="w-2 h-2 bg-slate-700 rounded-full mr-2"></div>
+                        <div class="w-12 h-1 bg-slate-900 rounded-full"></div>
+                    </div>
+
+                    <!-- Virtual Camera Display -->
+                    <div class="w-full aspect-[9/16] bg-slate-950 rounded-[30px] overflow-hidden relative border border-slate-800 flex flex-col justify-between pt-8 pb-4">
+                        
+                        <!-- Camera Feed Simulation (Dynamic Background based on scan status) -->
+                        <div id="sim-camera-bg" class="absolute inset-0 bg-cover bg-center opacity-40 transition-all duration-700" style="background-image: url('https://images.unsplash.com/photo-1542435503-956c469947f6?auto=format&fit=crop&w=500&q=80');"></div>
+                        
+                        <!-- Overlay Hud & Scan UI -->
+                        <div class="relative z-10 p-4 flex justify-between items-center">
+                            <span class="text-xs font-semibold bg-red-600/80 px-2 py-1 rounded text-white tracking-widest uppercase flex items-center">
+                                <span class="w-2 h-2 bg-white rounded-full mr-1 animate-ping"></span> Live AR
+                            </span>
+                            <span class="text-xs text-gray-300 bg-slate-900/60 px-2 py-1 rounded border border-white/10" id="tracking-status">
+                                <i class="fa-solid fa-eye-slash mr-1"></i> Mencari Marker
+                            </span>
+                        </div>
+
+                        <!-- Target Scanning Area -->
+                        <div class="relative z-10 flex flex-col items-center justify-center flex-grow p-4">
+                            
+                            <!-- Laser scanline line active during scan -->
+                            <div id="laser-line" class="absolute w-5/6 h-0.5 bg-cyan-400 left-1/12 opacity-0 shadow-[0_0_10px_#22d3ee]"></div>
+                            
+                            <!-- Scanner Scope -->
+                            <div id="scanner-scope" class="w-48 h-48 border-2 border-dashed border-gray-500/50 rounded-2xl flex items-center justify-center transition-all duration-300 relative">
+                                <!-- Corner Brackets for Scanner UI -->
+                                <div class="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-cyan-400 rounded-tl-lg"></div>
+                                <div class="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-cyan-400 rounded-tr-lg"></div>
+                                <div class="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-cyan-400 rounded-bl-lg"></div>
+                                <div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-cyan-400 rounded-br-lg"></div>
+                                
+                                <!-- Inside helper text / Object Viewer -->
+                                <div id="scan-feedback" class="text-center p-3">
+                                    <i class="fa-solid fa-qrcode text-4xl text-gray-500 animate-pulse mb-2"></i>
+                                    <p class="text-xs text-gray-400 font-medium">Dekatkan/Klik Salah Satu Marker Budaya di Bawah</p>
+                                </div>
+
+                                <!-- Dynamic Hologram Container -->
+                                <div id="hologram-stage" class="hidden hologram-container w-44 h-44 flex items-center justify-center">
+                                    <div class="hologram-object hologram-glow flex items-center justify-center w-full h-full">
+                                        <!-- SVG model will be injected here dynamically -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bottom Virtual Navigation / Info Toast -->
+                        <div class="relative z-10 px-4">
+                            <div id="toast-info" class="bg-slate-900/90 border border-cyan-500/30 rounded-xl p-3 text-center text-xs text-gray-300">
+                                <span class="text-cyan-400 font-semibold block mb-0.5"><i class="fa-solid fa-circle-info mr-1"></i> METODE MARKER-BASED AR</span>
+                                Kamera mengidentifikasi pola 2D hitam-putih khusus untuk menumpangkan objek budaya 3D di atasnya.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Physical Phone Home Bar -->
+                    <div class="w-36 h-1 bg-slate-800 rounded-full mx-auto mt-4"></div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Marker Selection & Educational Info -->
+            <div class="lg:col-span-5 flex flex-col space-y-6">
+                <!-- Welcome & Instructions -->
+                <div class="bg-[#1c2541]/50 border border-slate-700/60 p-6 rounded-2xl shadow-xl">
+                    <h2 class="text-xl font-bold text-white mb-2"><i class="fa-solid fa-graduation-cap text-cyan-400 mr-2"></i>Eksplorasi Budaya Maluku</h2>
+                    <p class="text-sm text-gray-300 leading-relaxed">
+                        Aplikasi ini mendemonstrasikan sistem <strong>Rancang Bangun Augmented Reality Berbasis Marker</strong>. Silakan pilih salah satu kartu marker fisik (cetak/digital) di bawah untuk memicu pemindaian dan memunculkan visualisasi hologram 3D interaktif.
+                    </p>
+                </div>
+
+                <!-- Marker Deck (Grid of cards) -->
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Pilih Kartu Marker Budaya</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Marker Card 1 -->
+                        <button onclick="scanMarker('baileo')" class="marker-btn bg-[#1c2541] border border-slate-700 hover:border-cyan-500 rounded-xl p-3 flex flex-col items-center transition-all duration-300 active:scale-95 group text-center" id="card-baileo">
+                            <!-- Simulated physical marker pattern inside card -->
+                            <div class="w-16 h-16 bg-white p-2 rounded-lg mb-2 border-2 border-slate-900 relative flex items-center justify-center">
+                                <div class="w-12 h-12 bg-black flex items-center justify-center">
+                                    <div class="w-6 h-6 bg-white flex items-center justify-center">
+                                        <div class="w-3 h-3 bg-black"></div>
+                                    </div>
+                                </div>
+                                <span class="absolute bottom-0 right-0 bg-cyan-500 text-[8px] text-black font-extrabold px-1 rounded-tl">B</span>
+                            </div>
+                            <span class="text-sm font-bold text-white group-hover:text-cyan-400">Rumah Baileo</span>
+                            <span class="text-[10px] text-gray-400">Rumah Adat</span>
+                        </button>
+
+                        <!-- Marker Card 2 -->
+                        <button onclick="scanMarker('tifa')" class="marker-btn bg-[#1c2541] border border-slate-700 hover:border-cyan-500 rounded-xl p-3 flex flex-col items-center transition-all duration-300 active:scale-95 group text-center" id="card-tifa">
+                            <div class="w-16 h-16 bg-white p-2 rounded-lg mb-2 border-2 border-slate-900 relative flex items-center justify-center">
+                                <div class="w-12 h-12 bg-black flex items-center justify-center">
+                                    <div class="w-8 h-4 bg-white"></div>
+                                </div>
+                                <span class="absolute bottom-0 right-0 bg-cyan-500 text-[8px] text-black font-extrabold px-1 rounded-tl">T</span>
+                            </div>
+                            <span class="text-sm font-bold text-white group-hover:text-cyan-400">Tifa Totobuang</span>
+                            <span class="text-[10px] text-gray-400">Alat Musik</span>
+                        </button>
+
+                        <!-- Marker Card 3 -->
+                        <button onclick="scanMarker('parang')" class="marker-btn bg-[#1c2541] border border-slate-700 hover:border-cyan-500 rounded-xl p-3 flex flex-col items-center transition-all duration-300 active:scale-95 group text-center" id="card-parang">
+                            <div class="w-16 h-16 bg-white p-2 rounded-lg mb-2 border-2 border-slate-900 relative flex items-center justify-center">
+                                <div class="w-12 h-12 bg-black flex items-center justify-center">
+                                    <div class="w-4 h-8 bg-white"></div>
+                                </div>
+                                <span class="absolute bottom-0 right-0 bg-cyan-500 text-[8px] text-black font-extrabold px-1 rounded-tl">P</span>
+                            </div>
+                            <span class="text-sm font-bold text-white group-hover:text-cyan-400">Parang Salawaku</span>
+                            <span class="text-[10px] text-gray-400">Senjata Tradisional</span>
+                        </button>
+
+                        <!-- Marker Card 4 -->
+                        <button onclick="scanMarker('lenso')" class="marker-btn bg-[#1c2541] border border-slate-700 hover:border-cyan-500 rounded-xl p-3 flex flex-col items-center transition-all duration-300 active:scale-95 group text-center" id="card-lenso">
+                            <div class="w-16 h-16 bg-white p-2 rounded-lg mb-2 border-2 border-slate-900 relative flex items-center justify-center">
+                                <div class="w-12 h-12 bg-black flex items-center justify-center">
+                                    <div class="w-6 h-6 border-2 border-white rounded-full"></div>
+                                </div>
+                                <span class="absolute bottom-0 right-0 bg-cyan-500 text-[8px] text-black font-extrabold px-1 rounded-tl">L</span>
+                            </div>
+                            <span class="text-sm font-bold text-white group-hover:text-cyan-400">Tari Lenso</span>
+                            <span class="text-[10px] text-gray-400">Seni Tari</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Educational Info Panel (Dynamically populated) -->
+                <div id="education-panel" class="bg-[#1c2541]/80 border border-cyan-500/20 p-5 rounded-2xl flex-grow flex flex-col justify-center min-h-[180px]">
+                    <div id="edu-placeholder" class="text-center py-6 text-gray-400">
+                        <i class="fa-solid fa-clipboard-question text-3xl mb-2 text-cyan-500/40"></i>
+                        <p class="text-sm">Klik salah satu marker budaya di atas untuk melacak marker dan memunculkan deskripsi pembelajaran di sini.</p>
+                    </div>
+                    <div id="edu-content" class="hidden">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <span id="edu-category" class="bg-cyan-500/20 text-cyan-400 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-cyan-400/20">KATEGORI</span>
+                            <span class="text-gray-400 text-xs">• EduBudaya Maluku</span>
+                        </div>
+                        <h4 id="edu-title" class="text-xl font-bold text-white mb-2">Rumah Baileo</h4>
+                        <p id="edu-desc" class="text-sm text-gray-300 leading-relaxed mb-4">Deskripsi mendalam tentang budaya Maluku akan ditampilkan di sini setelah pemindaian berhasil.</p>
+                        <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/50">
+                            <h5 class="text-xs font-semibold text-cyan-400 mb-1"><i class="fa-solid fa-lightbulb mr-1"></i> Fakta Unik Edukasi</h5>
+                            <p id="edu-fact" class="text-xs text-gray-300 leading-relaxed">Fakta unik dari aset budaya Maluku yang dipindai.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ================= SECTION 2: QUIZ INTERAKTIF ================= -->
+        <section id="sec-quiz" class="tab-section hidden max-w-2xl mx-auto">
+            <div class="bg-[#1c2541] border border-slate-700 p-6 rounded-2xl shadow-xl">
+                <!-- Quiz Welcome View -->
+                <div id="quiz-intro" class="text-center py-8">
+                    <div class="w-20 h-20 bg-cyan-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-cyan-400/30">
+                        <i class="fa-solid fa-trophy text-4xl text-cyan-400"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white mb-3">Evaluasi Pemahaman Budaya Maluku</h2>
+                    <p class="text-sm text-gray-300 mb-6 max-w-md mx-auto">
+                        Setelah mempelajari budaya Maluku melalui modul Marker AR, ujilah pemahaman Anda melalui kuis interaktif berikut!
+                    </p>
+                    <button onclick="startQuiz()" class="bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold px-8 py-3 rounded-xl transition duration-300 transform active:scale-95 shadow-[0_4px_15px_rgba(34,211,238,0.4)]">
+                        Mulai Kuis Sekarang
+                    </button>
+                </div>
+
+                <!-- Quiz Game View -->
+                <div id="quiz-play" class="hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <span class="text-xs font-semibold text-cyan-400 bg-cyan-950/60 px-3 py-1.5 rounded-full border border-cyan-500/30">
+                            Pertanyaan <span id="quiz-num">1</span> dari 5
+                        </span>
+                        <span id="quiz-score-badge" class="text-xs text-gray-300">
+                            Skor: <span id="quiz-score-val" class="font-bold text-cyan-400">0</span>
+                        </span>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-slate-800 h-2 rounded-full mb-6 overflow-hidden">
+                        <div id="quiz-progress" class="bg-cyan-500 h-full w-1/5 transition-all duration-300"></div>
+                    </div>
+
+                    <!-- Question Container -->
+                    <h3 id="quiz-question" class="text-lg font-bold text-white mb-6">Di manakah letak Rumah Baileo biasanya didirikan?</h3>
+
+                    <!-- Choices Grid -->
+                    <div class="grid grid-cols-1 gap-3 mb-6" id="quiz-choices">
+                        <!-- Dynamically generated buttons -->
+                    </div>
+
+                    <!-- Feedback Box -->
+                    <div id="quiz-feedback" class="hidden p-4 rounded-xl mb-6 text-sm flex items-start space-x-3">
+                        <div id="feedback-icon" class="text-lg"></div>
+                        <div>
+                            <h5 id="feedback-title" class="font-bold"></h5>
+                            <p id="feedback-desc" class="text-xs mt-0.5"></p>
+                        </div>
+                    </div>
+
+                    <!-- Next Button -->
+                    <div class="flex justify-end">
+                        <button id="quiz-next" onclick="nextQuestion()" class="hidden bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold px-6 py-2.5 rounded-xl transition duration-300">
+                            Lanjut <i class="fa-solid fa-chevron-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quiz Completion View -->
+                <div id="quiz-result" class="hidden text-center py-8">
+                    <div id="result-animation" class="w-24 h-24 bg-cyan-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-cyan-400/30">
+                        <i id="result-icon" class="fa-solid text-4xl"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-white mb-2" id="result-headline">Hebat!</h2>
+                    <p class="text-sm text-gray-400 mb-6" id="result-comment">Anda menyelesaikan kuis budaya Maluku.</p>
+                    
+                    <div class="inline-block bg-slate-950/60 px-8 py-4 rounded-2xl border border-slate-800 mb-8">
+                        <span class="text-xs text-gray-400 block uppercase tracking-wider mb-1">Skor Akhir Anda</span>
+                        <span class="text-5xl font-extrabold text-cyan-400" id="result-score">0 / 100</span>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row justify-center gap-3">
+                        <button onclick="startQuiz()" class="bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold px-6 py-3 rounded-xl transition duration-300">
+                            <i class="fa-solid fa-arrow-rotate-left mr-2"></i>Coba Lagi
+                        </button>
+                        <button onclick="switchTab('simulator')" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-6 py-3 rounded-xl transition duration-300">
+                            Kembali ke Simulator AR
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ================= SECTION 3: RANCANGAN SISTEM (TEKNIS) ================= -->
+        <section id="sec-rancangan" class="tab-section hidden space-y-8">
+            <div class="bg-[#1c2541]/50 border border-slate-700/60 p-6 rounded-2xl shadow-xl">
+                <h2 class="text-2xl font-bold text-white mb-2 flex items-center">
+                    <i class="fa-solid fa-compass-drafting text-cyan-400 mr-3"></i>Dokumentasi Rancang Bangun Game
+                </h2>
+                <p class="text-sm text-gray-300 leading-relaxed max-w-3xl">
+                    Bagian ini memaparkan rancangan teknis pembuatan **Game Edukasi Pengenalan Budaya Maluku Menggunakan Teknologi Augmented Reality Berbasis Marker**, dari skema interaksi sistem hingga pustaka visual.
+                </p>
+            </div>
+
+            <!-- Grid of Technical Specifications -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- 1. Arsitektur Sistem -->
+                <div class="bg-[#1c2541] border border-slate-700 p-6 rounded-2xl shadow-xl">
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center">
+                        <span class="w-6 h-6 bg-cyan-500/10 text-cyan-400 rounded-full flex items-center justify-center text-xs font-bold mr-2">1</span>
+                        Arsitektur Sistem Web-AR
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="p-3 bg-slate-950/50 rounded-xl border border-slate-800">
+                            <span class="text-xs font-semibold text-cyan-400 block mb-1">FRONTEND LAYER</span>
+                            <p class="text-xs text-gray-400">A-Frame HTML, CSS 3D Engine, Tailwind, JavaScript untuk penanganan logika game dan pemetaan objek.</p>
+                        </div>
+                        <div class="p-3 bg-slate-950/50 rounded-xl border border-slate-800">
+                            <span class="text-xs font-semibold text-cyan-400 block mb-1">AR ENGINE (COMPUTER VISION)</span>
+                            <p class="text-xs text-gray-400">AR.js (berbasis jsartoolkit) melacak koordinat fiducial marker matrix dari video input kamera.</p>
+                        </div>
+                        <div class="p-3 bg-slate-950/50 rounded-xl border border-slate-800">
+                            <span class="text-xs font-semibold text-cyan-400 block mb-1">ASSET & DATA MODEL</span>
+                            <p class="text-xs text-gray-400">Hologram menggunakan elemen SVG terproteksi (untuk versi web ringan) atau file .gltf 3D untuk AR sesungguhnya.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Alur Logika (Flowchart) -->
+                <div class="bg-[#1c2541] border border-slate-700 p-6 rounded-2xl shadow-xl flex flex-col">
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center">
+                        <span class="w-6 h-6 bg-cyan-500/10 text-cyan-400 rounded-full flex items-center justify-center text-xs font-bold mr-2">2</span>
+                        Flowchart Kerja Sensor Marker
+                    </h3>
+                    <div class="flex-grow flex flex-col justify-between space-y-2 text-xs">
+                        <div class="flex items-center space-x-2">
+                            <div class="bg-cyan-500 text-slate-950 p-2 rounded font-bold w-24 text-center">Start</div>
+                            <span class="text-gray-500">→</span>
+                            <div class="bg-slate-900 border border-slate-700 p-2 rounded text-gray-300 flex-grow">Inisialisasi Kamera & Pendeteksi Marker</div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="bg-slate-900 border border-slate-700 p-2 rounded text-gray-300 w-24 text-center">Deteksi Frame</div>
+                            <span class="text-gray-500">→</span>
+                            <div class="bg-slate-900 border border-slate-700 p-2 rounded text-gray-300 flex-grow">Apakah Marker Valid Terbaca di Kamera?</div>
+                        </div>
+                        <div class="flex items-center space-x-2 pl-8">
+                            <span class="text-red-400 font-bold">Tidak</span>
+                            <span class="text-gray-500">→</span>
+                            <div class="bg-slate-900/40 text-gray-500 border border-dashed border-slate-800 p-1.5 rounded flex-grow">Lakukan Scanning Ulang / Jaga Frame</div>
+                        </div>
+                        <div class="flex items-center space-x-2 pl-8">
+                            <span class="text-green-400 font-bold">Ya (Match)</span>
+                            <span class="text-gray-500">→</span>
+                            <div class="bg-cyan-500/10 border border-cyan-400/30 p-2 text-cyan-400 rounded flex-grow">Hitung Matriks Rotasi-Skala & Render Model 3D diatas Marker</div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="bg-cyan-500 text-slate-950 p-2 rounded font-bold w-24 text-center">Display</div>
+                            <span class="text-gray-500">→</span>
+                            <div class="bg-slate-900 border border-slate-700 p-2 rounded text-gray-300 flex-grow">Tampilkan Informasi Kebudayaan & Suara</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Desain Marker Fisik yang Siap Dicetak -->
+            <div class="bg-[#1c2541] border border-slate-700 p-6 rounded-2xl shadow-xl">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center">
+                    <i class="fa-solid fa-print text-cyan-400 mr-2"></i>
+                    Spesifikasi Marker 2D (Desain Pengenal)
+                </h3>
+                <p class="text-xs text-gray-300 mb-6 leading-relaxed">
+                    Marker fisik harus memiliki kontras tinggi dengan bingkai hitam tebal dan pola asimetris di bagian dalam agar algoritma *Computer Vision* dapat mendeteksi sudut dan orientasi visual 3D secara presisi.
+                </p>
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-6">
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col items-center">
+                        <div class="bg-white p-3 rounded-lg mb-3">
+                            <div class="w-20 h-20 bg-black flex items-center justify-center">
+                                <div class="w-12 h-12 bg-white flex items-center justify-center">
+                                    <div class="w-6 h-6 bg-black"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-white">MARKER BAILEO</span>
+                        <p class="text-[10px] text-gray-400 mt-1">Inisial Kode: B</p>
+                    </div>
+
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col items-center">
+                        <div class="bg-white p-3 rounded-lg mb-3">
+                            <div class="w-20 h-20 bg-black flex items-center justify-center">
+                                <div class="w-16 h-8 bg-white"></div>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-white">MARKER TIFA</span>
+                        <p class="text-[10px] text-gray-400 mt-1">Inisial Kode: T</p>
+                    </div>
+
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col items-center">
+                        <div class="bg-white p-3 rounded-lg mb-3">
+                            <div class="w-20 h-20 bg-black flex items-center justify-center">
+                                <div class="w-8 h-16 bg-white"></div>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-white">MARKER PARANG</span>
+                        <p class="text-[10px] text-gray-400 mt-1">Inisial Kode: P</p>
+                    </div>
+
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col items-center">
+                        <div class="bg-white p-3 rounded-lg mb-3">
+                            <div class="w-20 h-20 bg-black flex items-center justify-center">
+                                <div class="w-12 h-12 border-4 border-white rounded-full"></div>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-white">MARKER LENSO</span>
+                        <p class="text-[10px] text-gray-400 mt-1">Inisial Kode: L</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ================= SECTION 4: KAMERA AR ASLI (PROTOTYPE RIIL) ================= -->
+        <section id="sec-kamera" class="tab-section hidden">
+            <div class="bg-[#1c2541] border border-slate-700 p-6 rounded-2xl shadow-xl text-center max-w-2xl mx-auto">
+                <div class="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-yellow-500/30">
+                    <i class="fa-solid fa-triangle-exclamation text-2xl text-yellow-500"></i>
+                </div>
+                <h2 class="text-xl font-bold text-white mb-2">Pemberitahuan Hak Akses Kamera & Keamanan Sandbox</h2>
+                <p class="text-sm text-gray-300 leading-relaxed mb-6">
+                    Aplikasi ini dijalankan dalam ruang aman (*sandboxed iframe*). Beberapa peramban memblokir integrasi perangkat keras kamera (`getUserMedia`) untuk alasan keamanan. 
+                </p>
+
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 mb-6 text-left space-y-3">
+                    <h4 class="text-xs font-semibold text-cyan-400 uppercase tracking-wider"><i class="fa-solid fa-code-branch mr-1.5"></i>Kode Implementasi AR.js (Marker Hiro)</h4>
+                    <p class="text-xs text-gray-400 leading-normal">
+                        Untuk menjalankan Web-AR secara nyata di ponsel cerdas Anda, pastikan Anda memuat kode menggunakan modul A-Frame dan AR.js berikut:
+                    </p>
+                    <pre class="bg-slate-900 p-3 rounded-lg text-[10px] text-gray-300 font-mono overflow-x-auto border border-slate-800">
+&lt;script src="https://aframe.io/releases/1.2.0/aframe.min.js"&gt;&lt;/script&gt;
+&lt;script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"&gt;&lt;/script&gt;
+
+&lt;a-scene embedded arjs="sourceType: webcam;"&gt;
+  &lt;!-- Pelacakan Marker Hiro bawaan AR.js --&gt;
+  &lt;a-marker preset="hiro"&gt;
+    &lt;!-- Model 3D Budaya Maluku --&gt;
+    &lt;a-entity gltf-model="baileo_model.gltf" scale="0.5 0.5 0.5"&gt;&lt;/a-entity&gt;
+  &lt;/a-marker&gt;
+  &lt;a-entity camera&gt;&lt;/a-entity&gt;
+&lt;/a-scene&gt;</pre>
+                </div>
+
+                <div class="flex flex-col sm:flex-row justify-center gap-3">
+                    <button onclick="switchTab('simulator')" class="bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold px-6 py-2.5 rounded-xl transition duration-300">
+                        Gunakan Simulator (Direkomendasikan)
+                    </button>
+                    <a href="https://ar-js-org.github.io/AR.js/three.js/examples/marker-training/examples/generator.html" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-white font-medium px-6 py-2.5 rounded-xl transition duration-300 flex items-center justify-center">
+                        <i class="fa-solid fa-arrow-up-right-from-square mr-2"></i>Buat Custom Marker
+                    </a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- App Bottom Footer -->
+    <footer class="bg-slate-950 border-t border-slate-800 py-6 px-4 text-center">
+        <p class="text-xs text-gray-500">
+            © 2026 Rancang Bangun Game Edukasi Budaya Maluku - Teknologi Reality Berbasis Marker.
+        </p>
+        <p class="text-[10px] text-gray-600 mt-1">
+            Dibuat menggunakan HTML5, Tailwind CSS, JavaScript ES6 & Simulasi Sensor Berbasis Pola 2D.
+        </p>
+    </footer>
+
+    <!-- Interactive JavaScript Logic -->
+    <script>
+        // Culture Database (Contains SVG representations to avoid external broken links)
+        const cultureDb = {
+            baileo: {
+                title: "Rumah Adat Baileo",
+                category: "Rumah Adat",
+                desc: "Rumah Baileo merupakan rumah adat tradisional Maluku yang merepresentasikan balai musyawarah adat. Memiliki arsitektur panggung terbuka tanpa dinding untuk menegaskan asas keterbukaan dan musyawarah mufakat demi kedamaian bersama seluruh marga (soa).",
+                fact: "Tangga depan Rumah Baileo selalu ganjil jumlahnya dan diletakkan batu pamali sebagai simbol ikatan suci dengan leluhur adat setempat.",
+                svg: `
+                <svg viewBox="0 0 100 100" class="w-32 h-32 text-cyan-400">
+                    <!-- Base Foundation / Stilts -->
+                    <rect x="15" y="75" width="70" height="8" fill="#1e293b" stroke="#22d3ee" stroke-width="1.5" />
+                    <!-- Pillars -->
+                    <line x1="25" y1="55" x2="25" y2="75" stroke="#22d3ee" stroke-width="2.5" />
+                    <line x1="38" y1="55" x2="38" y2="75" stroke="#22d3ee" stroke-width="2" />
+                    <line x1="50" y1="55" x2="50" y2="75" stroke="#22d3ee" stroke-width="2.5" />
+                    <line x1="62" y1="55" x2="62" y2="75" stroke="#22d3ee" stroke-width="2" />
+                    <line x1="75" y1="55" x2="75" y2="75" stroke="#22d3ee" stroke-width="2.5" />
+                    <!-- Floor Stage -->
+                    <rect x="20" y="53" width="60" height="4" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5" />
+                    <!-- Big Straw Roof (Atap Rumbia) -->
+                    <polygon points="50,15 10,50 90,50" fill="#1e293b" stroke="#22d3ee" stroke-width="2" />
+                    <!-- Thatch Textures on Roof -->
+                    <line x1="50" y1="15" x2="50" y2="50" stroke="#22d3ee" stroke-width="1" stroke-dasharray="2,2" />
+                    <line x1="50" y1="15" x2="30" y2="50" stroke="#22d3ee" stroke-width="1" stroke-dasharray="2,2" />
+                    <line x1="50" y1="15" x2="70" y2="50" stroke="#22d3ee" stroke-width="1" stroke-dasharray="2,2" />
+                    <!-- Decorative Ornaments -->
+                    <circle cx="50" cy="10" r="2" fill="#22d3ee" />
+                </svg>`
+            },
+            tifa: {
+                title: "Tifa Totobuang",
+                category: "Alat Musik Tradisional",
+                desc: "Tifa Totobuang adalah salah satu instrumen musik perkusi khas Maluku. Berbentuk tabung silindris yang terbuat dari kayu tebal berukir dan membran kulit rusa atau kambing, dimainkan dengan cara ditabuh untuk mengiringi ritual adat dan tari sakral.",
+                fact: "Totobuang dipengaruhi seni musik gamelan Jawa pasca kontak budaya sejarah masa lampau, menjadikannya perpaduan seni perkusi melodis unik di kawasan timur nusantara.",
+                svg: `
+                <svg viewBox="0 0 100 100" class="w-32 h-32 text-cyan-400">
+                    <!-- Drum Head (Membran) -->
+                    <ellipse cx="50" cy="20" rx="20" ry="6" fill="#0f172a" stroke="#22d3ee" stroke-width="2" />
+                    <!-- Drum Body -->
+                    <path d="M30,20 C30,35 40,60 38,80 C38,84 62,84 62,80 C60,60 70,35 70,20" fill="#1e293b" stroke="#22d3ee" stroke-width="2" />
+                    <!-- Tribal Carving Patterns on Body -->
+                    <path d="M35,35 L65,35 M36,50 L64,50 M37,65 L63,65" stroke="#22d3ee" stroke-width="1" stroke-dasharray="3,3" />
+                    <path d="M42,40 L45,45 L48,40 M52,40 L55,45 L58,40" stroke="#22d3ee" stroke-width="1.5" fill="none" />
+                    <!-- Base Rim -->
+                    <ellipse cx="50" cy="80" rx="12" ry="4" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5" />
+                    <!-- Tifa Mallet / Stick -->
+                    <line x1="15" y1="40" x2="25" y2="25" stroke="#22d3ee" stroke-width="2" />
+                    <circle cx="25" cy="25" r="3" fill="#22d3ee" />
+                </svg>`
+            },
+            parang: {
+                title: "Parang & Salawaku",
+                category: "Senjata Tradisional",
+                desc: "Parang dan Salawaku adalah paket senjata tradisional kebanggaan para pejuang Maluku, khususnya Kapitan Pattimura. Parang (machete) bermakna kemandirian dan tekad baja, sementara Salawaku (shield) bermakna perlindungan, keadilan, dan kesiapan pertahanan diri.",
+                fact: "Salawaku dihiasi sisipan kulit kerang laut yang melambangkan kekayaan kemaritiman Maluku, sekaligus memberi efek psikologis menakuti musuh.",
+                svg: `
+                <svg viewBox="0 0 100 100" class="w-32 h-32 text-cyan-400">
+                    <!-- Salawaku (Shield) -->
+                    <path d="M50,15 C55,30 65,55 60,85 C55,88 45,88 40,85 C35,55 45,30 50,15 Z" fill="#1e293b" stroke="#22d3ee" stroke-width="2" />
+                    <!-- Shell Inlay details on Shield -->
+                    <circle cx="50" cy="35" r="2.5" fill="#22d3ee" />
+                    <circle cx="50" cy="50" r="2.5" fill="#22d3ee" />
+                    <circle cx="50" cy="65" r="2.5" fill="#22d3ee" />
+                    <line x1="50" y1="15" x2="50" y2="85" stroke="#22d3ee" stroke-width="1" stroke-dasharray="4,4" />
+                    
+                    <!-- Parang (Sword/Machete) crossing in front -->
+                    <path d="M25,85 L30,45 C30,45 31,35 35,32 C38,30 42,32 40,42 L31,85 Z" fill="#0f172a" stroke="#22d3ee" stroke-width="1.8" />
+                    <!-- Machete Handle -->
+                    <rect x="23" y="84" width="7" height="10" rx="2" transform="rotate(-15, 23, 84)" fill="#1e293b" stroke="#22d3ee" stroke-width="1.5" />
+                </svg>`
+            },
+            lenso: {
+                title: "Tari Seni Lenso",
+                category: "Seni Pertunjukan",
+                desc: "Tari Lenso adalah tarian pergaulan tradisional Maluku yang dibawakan berkelompok menggunakan sapu tangan putih (lenso) sebagai atribut utama. Tarian dinamis berirama merdu ini mencerminkan keramahan, sukacita, rasa hormat, dan keterbukaan menyambut sanak saudara.",
+                fact: "Mulanya Tari Lenso hanya digelar di kalangan istana kerajaan Maluku sebelum berkembang pesat menjadi kesenian rakyat yang mempersatukan lintas komunitas.",
+                svg: `
+                <svg viewBox="0 0 100 100" class="w-32 h-32 text-cyan-400">
+                    <!-- Abstract Dancer silhouette -->
+                    <circle cx="50" cy="22" r="7" fill="#0f172a" stroke="#22d3ee" stroke-width="2" />
+                    <!-- Body / Dress -->
+                    <path d="M42,40 L58,40 L65,75 L35,75 Z" fill="#1e293b" stroke="#22d3ee" stroke-width="2" />
+                    <!-- Traditional Cele Kebaya details -->
+                    <path d="M42,40 L50,55 L58,40" fill="none" stroke="#22d3ee" stroke-width="1.5" />
+                    <!-- Dancing Arms waving the Lenso (Scarf) -->
+                    <!-- Left Hand raising high with white cloth -->
+                    <path d="M42,42 Q28,30 20,20" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" />
+                    <polygon points="20,20 12,12 18,8 24,14" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5" />
+                    <!-- Right Hand swinging low -->
+                    <path d="M58,42 Q70,55 78,60" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" />
+                    <polygon points="78,60 86,64 88,58 80,54" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5" />
+                </svg>`
+            }
+        };
+
+        // Quiz Questions Database
+        const quizDb = [
+            {
+                q: "Apa nama senjata tradisional Maluku yang merepresentasikan kedaulatan, perlindungan diri, dan keadilan?",
+                choices: ["Keris Singosari", "Parang Salawaku", "Mandau Borneo", "Rencong Pejuang"],
+                correct: 1,
+                desc: "Parang Salawaku adalah senjata tradisional satu paket (Pedang dan Perisai) dari Maluku."
+            },
+            {
+                q: "Rumah adat Baileo didesain dengan konsep terbuka tanpa dinding. Filosofi utama di balik arsitektur ini adalah...",
+                choices: ["Mencegah suhu panas di pesisir pantai", "Menghemat penggunaan bahan bangunan kayu", "Mengedepankan keterbukaan dan musyawarah mufakat", "Simbol kesiapan siaga dari serangan laut luar"],
+                correct: 2,
+                desc: "Arsitektur terbuka Rumah Baileo melambangkan kebersamaan dan musyawarah terbuka semua marga."
+            },
+            {
+                q: "Alat musik ritmis silinder tradisional Maluku yang dimainkan dengan cara ditabuh adalah...",
+                choices: ["Sasando", "Kolintang", "Tifa Totobuang", "Angklung"],
+                correct: 2,
+                desc: "Tifa Totobuang merupakan alat musik tabuh membran berpola khas timur nusantara."
+            },
+            {
+                q: "Atribut/properti kain berwarna putih yang diayunkan penari wanita dalam Tari Lenso melambangkan...",
+                choices: ["Keramahan, kesucian, dan keterbukaan menyambut tamu", "Sinyal peperangan adat dimulai", "Tanda duka cita mendalam", "Status sosial golongan istana"],
+                correct: 0,
+                desc: "Sapu tangan putih (lenso) adalah representasi kesucian niat, kehangatan, dan keterbukaan persaudaraan."
+            },
+            {
+                q: "Pada Rancang Bangun AR Berbasis Marker, fungsi utama komputer vision (kamera) adalah...",
+                choices: ["Merekam audio pertunjukan budaya", "Mendeteksi pola hitam-putih marker untuk mengorientasikan objek 3D", "Mengisi baterai ponsel cerdas penonton", "Menggantikan peran penari riil"],
+                correct: 1,
+                desc: "Kamera memproses pola hitam-putih marker 2D sebagai koordinat pemunculan objek visual digital hologram 3D."
+            }
+        ];
+
+        // State variables
+        let currentQuizIndex = 0;
+        let quizScore = 0;
+        let activeMarker = null;
+
+        // Sound generator (Web Audio API synth for futuristic beep alerts)
+        function playBeep(frequency, duration, type = 'sine') {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                oscillator.type = type;
+                oscillator.frequency.value = frequency;
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + duration);
+            } catch(e) {
+                // Audio context block safeguard
+            }
+        }
+
+        // Toggle Mobile Navigation Panel
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            const icon = document.getElementById('menu-icon');
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+                icon.className = "fa-solid fa-xmark text-xl";
+            } else {
+                menu.classList.add('hidden');
+                icon.className = "fa-solid fa-bars text-xl";
+            }
+        }
+
+        // Switch App Screen Views
+        function switchTab(tabId) {
+            // Hide all sections
+            document.querySelectorAll('.tab-section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            // Show active section
+            document.getElementById(`sec-${tabId}`).classList.remove('hidden');
+
+            // Update Active Nav Styles
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = "tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 text-gray-300 hover:bg-slate-700";
+            });
+            document.getElementById(`tab-${tabId}`).className = "tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 bg-cyan-600 text-white";
+
+            // Mobile Navigation indicator sync
+            document.querySelectorAll('#mobile-menu button').forEach(btn => {
+                btn.className = "text-left px-3 py-2 rounded-md text-sm text-gray-300 hover:bg-slate-800";
+            });
+            document.getElementById(`m-tab-${tabId}`).className = "text-left px-3 py-2 rounded-md text-sm text-cyan-400 bg-cyan-950/40 font-semibold";
+
+            playBeep(600, 0.1);
+        }
+
+        // Simulated Marker-Based AR Scanning Engine
+        function scanMarker(itemKey) {
+            // Unhighlight all cards
+            document.querySelectorAll('.marker-btn').forEach(btn => {
+                btn.classList.remove('border-cyan-400', 'bg-cyan-950/20');
+                btn.classList.add('border-slate-700', 'bg-[#1c2541]');
+            });
+
+            // Highlight chosen marker card
+            const activeCard = document.getElementById(`card-${itemKey}`);
+            activeCard.classList.remove('border-slate-700', 'bg-[#1c2541]');
+            activeCard.classList.add('border-cyan-400', 'bg-cyan-950/20');
+
+            // Trigger Scanner Laser scanning visual feedback
+            const laser = document.getElementById('laser-line');
+            const scanFeedback = document.getElementById('scan-feedback');
+            const hologramStage = document.getElementById('hologram-stage');
+            const trackingStatus = document.getElementById('tracking-status');
+            const toast = document.getElementById('toast-info');
+
+            // Laser line activation during tracking
+            laser.classList.add('scanline', 'opacity-100');
+            trackingStatus.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-1"></i> Memindai...`;
+            trackingStatus.className = "text-xs text-yellow-300 bg-slate-900/60 px-2 py-1 rounded border border-yellow-500/30";
+            
+            playBeep(440, 0.15, 'triangle');
+
+            // Simulate detection delay (800ms)
+            setTimeout(() => {
+                laser.classList.remove('scanline', 'opacity-100');
+                
+                // Audio chime on successful lock/track
+                playBeep(880, 0.3, 'sine');
+                
+                // Swap tracking state UI
+                trackingStatus.innerHTML = `<i class="fa-solid fa-lock text-cyan-400 mr-1 animate-pulse"></i> Marker Terkunci`;
+                trackingStatus.className = "text-xs text-cyan-400 bg-cyan-950/80 px-2 py-1 rounded border border-cyan-500/40";
+
+                // Load Hologram Object Inside Lens
+                scanFeedback.classList.add('hidden');
+                hologramStage.classList.remove('hidden');
+                
+                // Inject custom SVG asset
+                hologramStage.firstElementChild.innerHTML = cultureDb[itemKey].svg;
+
+                // Push information into educational panel
+                document.getElementById('edu-placeholder').classList.add('hidden');
+                document.getElementById('edu-content').classList.remove('hidden');
+                document.getElementById('edu-title').innerText = cultureDb[itemKey].title;
+                document.getElementById('edu-category').innerText = cultureDb[itemKey].category;
+                document.getElementById('edu-desc').innerText = cultureDb[itemKey].desc;
+                document.getElementById('edu-fact').innerText = cultureDb[itemKey].fact;
+
+                // Adjust phone container HUD text
+                toast.innerHTML = `<span class="text-cyan-400 font-semibold block mb-0.5"><i class="fa-solid fa-cube mr-1"></i> HOLOGRAM PROJECTION ACTIVE</span>Objek ${cultureDb[itemKey].title} direkonstruksi menggunakan koordinat proyeksi marker.`;
+
+            }, 800);
+        }
+
+        // ================= LOGIKA INTERAKTIF KUIS =================
+        function startQuiz() {
+            currentQuizIndex = 0;
+            quizScore = 0;
+            document.getElementById('quiz-intro').classList.add('hidden');
+            document.getElementById('quiz-result').classList.add('hidden');
+            document.getElementById('quiz-play').classList.remove('hidden');
+            
+            showQuizQuestion();
+        }
+
+        function showQuizQuestion() {
+            // Reset question UI elements
+            document.getElementById('quiz-feedback').classList.add('hidden');
+            document.getElementById('quiz-next').classList.add('hidden');
+            
+            const currentQuestion = quizDb[currentQuizIndex];
+            
+            // Set Progress Indicators
+            document.getElementById('quiz-num').innerText = currentQuizIndex + 1;
+            document.getElementById('quiz-score-val').innerText = quizScore;
+            const progressPercent = ((currentQuizIndex + 1) / quizDb.length) * 100;
+            document.getElementById('quiz-progress').style.width = `${progressPercent}%`;
+            
+            // Question Text
+            document.getElementById('quiz-question').innerText = currentQuestion.q;
+            
+            // Render Answer Choices
+            const choicesContainer = document.getElementById('quiz-choices');
+            choicesContainer.innerHTML = '';
+            
+            currentQuestion.choices.forEach((choice, index) => {
+                const btn = document.createElement('button');
+                btn.className = "quiz-choice-btn w-full text-left p-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-cyan-500/50 text-sm font-medium transition duration-200 flex items-center justify-between";
+                btn.innerHTML = `<span>${choice}</span><i class="fa-regular fa-circle text-gray-500"></i>`;
+                btn.onclick = () => checkQuizAnswer(index, btn);
+                choicesContainer.appendChild(btn);
+            });
+        }
+
+        function checkQuizAnswer(chosenIndex, selectedButton) {
+            const currentQuestion = quizDb[currentQuizIndex];
+            const isCorrect = chosenIndex === currentQuestion.correct;
+            
+            // Disable all choices immediately to prevent double clicks
+            document.querySelectorAll('.quiz-choice-btn').forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('opacity-60', 'cursor-not-allowed');
+            });
+
+            // Adjust selected and correct/incorrect styling
+            selectedButton.classList.remove('opacity-60');
+            const feedbackBox = document.getElementById('quiz-feedback');
+            const feedbackIcon = document.getElementById('feedback-icon');
+            const feedbackTitle = document.getElementById('feedback-title');
+            const feedbackDesc = document.getElementById('feedback-desc');
+
+            if (isCorrect) {
+                // Correct choice
+                selectedButton.className = "w-full text-left p-4 rounded-xl bg-green-950/60 border border-green-500/80 text-sm font-semibold text-green-400 flex items-center justify-between";
+                selectedButton.querySelector('i').className = "fa-solid fa-circle-check text-green-400";
+                
+                quizScore += 20; // 5 questions total = 100 points
+                playBeep(880, 0.25, 'sine');
+
+                // Set feedback banner
+                feedbackBox.className = "p-4 rounded-xl mb-6 text-sm flex items-start space-x-3 bg-green-950/40 border border-green-500/20 text-green-300";
+                feedbackIcon.innerHTML = `<i class="fa-solid fa-circle-check"></i>`;
+                feedbackTitle.innerText = "Jawaban Benar!";
+            } else {
+                // Wrong choice
+                selectedButton.className = "w-full text-left p-4 rounded-xl bg-red-950/60 border border-red-500/80 text-sm font-semibold text-red-400 flex items-center justify-between";
+                selectedButton.querySelector('i').className = "fa-solid fa-circle-xmark text-red-400";
+                
+                playBeep(220, 0.4, 'triangle');
+
+                // Highlight correct button choice in green
+                const allButtons = document.querySelectorAll('.quiz-choice-btn');
+                const correctBtn = allButtons[currentQuestion.correct];
+                correctBtn.className = "w-full text-left p-4 rounded-xl bg-green-950/40 border border-green-500/50 text-sm font-medium text-green-400 flex items-center justify-between";
+                correctBtn.classList.remove('opacity-60');
+
+                // Set feedback banner
+                feedbackBox.className = "p-4 rounded-xl mb-6 text-sm flex items-start space-x-3 bg-red-950/40 border border-red-500/20 text-red-300";
+                feedbackIcon.innerHTML = `<i class="fa-solid fa-circle-xmark"></i>`;
+                feedbackTitle.innerText = "Jawaban Kurang Tepat";
+            }
+
+            // Fill educational feedback explanation
+            feedbackDesc.innerText = currentQuestion.desc;
+            feedbackBox.classList.remove('hidden');
+            
+            // Show Next Button
+            document.getElementById('quiz-next').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            currentQuizIndex++;
+            if (currentQuizIndex < quizDb.length) {
+                showQuizQuestion();
+            } else {
+                showQuizResults();
+            }
+            playBeep(600, 0.1);
+        }
+
+        function showQuizResults() {
+            document.getElementById('quiz-play').classList.add('hidden');
+            const resultScreen = document.getElementById('quiz-result');
+            resultScreen.classList.remove('hidden');
+
+            const scoreDisplay = document.getElementById('result-score');
+            const headline = document.getElementById('result-headline');
+            const comment = document.getElementById('result-comment');
+            const icon = document.getElementById('result-icon');
+            const animStage = document.getElementById('result-animation');
+
+            scoreDisplay.innerText = `${quizScore} / 100`;
+
+            if (quizScore >= 80) {
+                headline.innerText = "Luar Biasa!";
+                comment.innerText = "Anda telah mendominasi pemahaman kebudayaan Maluku dengan sempurna.";
+                icon.className = "fa-solid fa-award text-yellow-400 text-4xl";
+                animStage.className = "w-24 h-24 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-yellow-400/30 animate-bounce";
+                playBeep(988, 0.5, 'sine');
+            } else if (quizScore >= 60) {
+                headline.innerText = "Kinerja Bagus!";
+                comment.innerText = "Pemahaman Anda cukup baik. Ulangi kembali eksplorasi marker AR untuk skor sempurna.";
+                icon.className = "fa-solid fa-circle-check text-cyan-400 text-4xl";
+                animStage.className = "w-24 h-24 bg-cyan-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-cyan-400/30";
+                playBeep(784, 0.3, 'sine');
+            } else {
+                headline.innerText = "Yuk Belajar Lagi!";
+                comment.innerText = "Mari baca kembali fakta menarik di modul pemindaian dan coba kuis ini lagi.";
+                icon.className = "fa-solid fa-book-open text-red-400 text-4xl";
+                animStage.className = "w-24 h-24 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/30";
+                playBeep(330, 0.6, 'sawtooth');
+            }
+        }
+    </script>
+</body>
+</html>
